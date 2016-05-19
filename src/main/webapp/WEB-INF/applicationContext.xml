@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xmlns:task="http://www.springframework.org/schema/task"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-3.1.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context-3.1.xsd
+       http://www.springframework.org/schema/task
+       http://www.springframework.org/schema/task/spring-task-3.1.xsd">
+    <context:annotation-config/>
+	<!-- 扫描com.maizuo.dao包下所有标注@Repository的DAO组件 -->
+	<context:component-scan base-package="com.crawler.dao"/>
+	<!-- 扫描com.maizuo.service包下所有标注@Service的服务组件 -->
+	<context:component-scan base-package="com.crawler.service"/>
+	
+	<!-- 定时器 -->
+	<!-- 
+		task:executor/@pool-size：可以指定执行线程池的初始大小、最大大小
+		task:executor/@queue-capacity：等待执行的任务队列的容量
+		task:executor/@rejection-policy：当等待队列爆了时的策略，分为丢弃、由任务执行器直接运行等方式  
+	-->
+	<!--
+	<task:scheduler id="scheduler" pool-size="10" />
+	<task:executor id="executor" keep-alive="3600" pool-size="100-1000" queue-capacity="1000" rejection-policy="CALLER_RUNS" />
+	<task:annotation-driven executor="executor" scheduler="scheduler"/>-->
+
+	<!-- 数据访问层配置 -->
+	<bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="location" value="classpath:jdbc.properties"/>
+	</bean>
+	
+	<!--数据源公共属性 -->
+	<bean id="parentDataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+		<property name="jmxEnabled" value="true"/>
+		<property name="testWhileIdle" value="true"/>
+		<property name="testOnBorrow" value="true"/>
+		<property name="testOnReturn" value="false"/>
+		<property name="validationInterval" value="30000"/>
+		<property name="validationQuery" value="SELECT 1"/>
+		<property name="timeBetweenEvictionRunsMillis" value="30000"/>
+		<property name="maxActive" value="100"/>
+		<property name="initialSize" value="10"/>
+		<property name="maxWait" value="10000"/>
+		<property name="minEvictableIdleTimeMillis" value="30000"/>
+		<property name="minIdle" value="10"/>
+		<property name="logAbandoned" value="false"/>
+		<property name="removeAbandoned" value="true"/>
+		<property name="removeAbandonedTimeout" value="60"/>
+		<property name="jdbcInterceptors" value="org.apache.tomcat.jdbc.pool.interceptor.ConnectionState;org.apache.tomcat.jdbc.pool.interceptor.StatementFinalizer"/>
+	</bean>
+	
+	<bean id="dataSourceWrite" parent="parentDataSource">
+		<property name="driverClassName" value="${jdbc.driverClassName}" />
+		<property name="url" value="${jdbc.url}" />
+		<property name="username" value="${jdbc.username}" />
+		<property name="password" value="${jdbc.password}" />
+	</bean>
+	
+	<bean id="dataSourceRead" parent="parentDataSource">
+		<property name="driverClassName" value="${read.jdbc.driverClassName}" />
+		<property name="url" value="${read.jdbc.url}" />
+		<property name="username" value="${read.jdbc.username}" />
+		<property name="password" value="${read.jdbc.password}" />
+	</bean>
+
+	<!-- jdbcTemplate注入 -->
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource">
+			<ref bean="dataSourceWrite"/>
+		</property>
+	</bean>
+	<!-- jdbcTemplate读注入 -->
+	<bean id="jdbcTemplateRead" class="org.springframework.jdbc.core.JdbcTemplate">
+		<property name="dataSource">
+			<ref bean="dataSourceRead"/>
+		</property>
+	</bean>
+
+
+	<!-- 配置日志拦截器 -->
+	<!-- <bean id="logInterceptor" class="com.maizuo.log.LogInterceptor"></bean>
+	<aop:config proxy-target-class="true">
+		<aop:aspect id="logAspectSYS" ref="logInterceptor">
+			<aop:around method="invoke" pointcut="execution(public * com.maizuo.web.controller..*.*(..))" />
+			<aop:pointcut id="log" expression="execution(* com.maizuo.web.controller.*.*(..))"/>配置在log包下所有的类在调用之前都会被拦截
+            <aop:before pointcut-ref="log" method="before"/>在log包下面所有的类的所有方法被调用之前都调用MyLog中的before方法
+            <aop:after pointcut-ref="log" method="after"/>在log包下面所有的类的所有方法被调用之前都调用MyLog中的after方法
+		</aop:aspect>
+	</aop:config> -->
+</beans>
+  
